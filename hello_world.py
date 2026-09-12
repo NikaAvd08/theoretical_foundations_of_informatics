@@ -1,3 +1,3 @@
 if __name__ == '__main__':
     print('Hello world')
-    print()
+    print('This is my first Python script!')

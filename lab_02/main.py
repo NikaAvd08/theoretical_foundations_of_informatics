@@ -1,7 +1,8 @@
 from itertools import groupby
 import os
 
-order_file = r"C:\Users\user\theoretical_foundations_of_informatics\lab_02\orders.txt"
+current_dir = os.path.dirname(os.path.abspath(__file__))
+order_file = os.path.join(current_dir, 'orders.txt')
 
 orders = []
 mistakes = []

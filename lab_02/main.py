@@ -1,77 +1,102 @@
 from itertools import groupby
 import os
-
-current_dir = os.path.dirname(os.path.abspath(__file__))
-order_file = os.path.join(current_dir, 'orders.txt')
-
-orders = []
-mistakes = []
-nums = []
-statuses = ['новый','в обработке','выполнен','отменён']
+from pathlib import Path
+STATUSES = ['новый','в обработке','выполнен','отменён']
+EXPENSIVE = 5000
+INPUT_FILE_NAME = 'input.txt'
+OUTPUT_FILE_NAME = 'orders_report.txt'
 
 
-with open(order_file, encoding='utf-8') as f: 
+def read_file():
+    """Считывает входной файл и возвращает список корректных заказов, список ошибок"""
+    try:
+        current_dir = Path(__file__).resolve().parent
+    except NameError:
+        print("Входной файл отсутствует.")
+        current_dir = Path.cwd()
+    order_file = current_dir / INPUT_FILE_NAME
 
-    for i,line in enumerate(f.readlines()): 
-        line.strip()
-        if not line: continue
 
-        line_elements = line.split(";")
+    orders = []
+    mistakes = []
+    nums = []
+    
 
-        if not line_elements[0].isdigit() or not (line_elements[0].lstrip('-').isdigit()):
-            mistakes.append(f'Строка {i+1}: номер заказа должен быть положительным целым числом.')
-            continue
 
-        if int(line_elements[0])!=float(line_elements[0]) or int(line_elements[0])<=0:
-            mistakes.append(f'Строка {i+1}: номер заказа должен быть положительным целым числом.')
-            continue
+    with open(order_file, encoding='utf-8') as f: 
 
-        if len(line_elements)!=6:
-            mistakes.append(f'Строка {i+1}: строка должна содержать ровно шесть полей.')
-            continue
+        for i,line in enumerate(f.readlines()): 
+            line.strip()
+            if not line: continue
 
-        if line_elements[0] in nums:
-            mistakes.append(f'Строка {i+1}: номера заказов не должны повторяться.')
-            continue
+            line_elements = line.split(";")
 
-        if line_elements[1] =='':
-            mistakes.append(f'Строка {i+1}: имя покупателя должно быть непустой строкой.')
-            continue
+            
+            if len(line_elements)!=6:
+                mistakes.append(f'Строка {i+1}: строка должна содержать ровно шесть полей.')
+                continue
 
-        if line_elements[2] =='':
-            mistakes.append(f'Строка {i+1}: категория товара не должна быть пустой строкой.')
-            continue
+            try:
+                int(line_elements[0])
+                if int(line_elements[0])<=0:
+                    raise ValueError
+            except ValueError:
+                mistakes.append(f'Строка {i+1}: номер заказа должен быть положительным целым числом.')
+                continue
 
-        if not line_elements[3].isdigit():
-            mistakes.append(f'Строка {i+1}: количество должно быть положительным целым числом.')
-            continue
+            if line_elements[0] in nums:
+                mistakes.append(f'Строка {i+1}: номера заказов не должны повторяться.')
+                continue
+
+            if line_elements[1] =='':
+                mistakes.append(f'Строка {i+1}: имя покупателя должно быть непустой строкой.')
+                continue
+
+            if line_elements[2] =='':
+                mistakes.append(f'Строка {i+1}: категория товара не должна быть пустой строкой.')
+                continue
+
+            try:
+                int(line_elements[3])
+                if int(line_elements[3])<0:
+                    raise ValueError
+            except ValueError:
+                mistakes.append(f'Строка {i+1}: количество должно быть положительным целым числом.')
+                continue
+
+            try:
+                float(line_elements[4])
+                if float(line_elements[4])<0:
+                    raise ValueError
+            except:
+                mistakes.append(f'Строка {i+1}: цена должна быть положительной.')
+                continue
+
+            line_elements[5] = line_elements[5].replace("\n", "")
+            if line_elements[5] not in STATUSES:
+                mistakes.append(f'Строка {i+1}: статус должен входить в перечень допустимых.')
+                continue
+            
+            orders.append({
+                "number": int(line_elements[0]),
+                "customer" :line_elements[1],
+                "category": line_elements[2],
+                "quantity": int(line_elements[3]),
+                "price": float(line_elements[4]),
+                "status": line_elements[5],
+                "worth" :int(line_elements[3])* float(line_elements[4])
+            })
+            nums.append(line_elements[0])
+
+    if len(orders)==0:
+        print("Корректные записи отсутствуют.")
         
-        if int(line_elements[3])!=float(line_elements[3]) or int(line_elements[3])<=0:
-            mistakes.append(f'Строка {i+1}: количество должно быть положительным целым числом.')
-            continue
+    return orders,mistakes
 
-        if float(line_elements[4])<=0:
-            mistakes.append(f'Строка {i+1}: цена должна быть положительной.')
-            continue
-
-        line_elements[5] = line_elements[5].replace("\n", "")
-        if line_elements[5] not in statuses:
-            mistakes.append(f'Строка {i+1}: статус должен входить в перечень допустимых.')
-            continue
-        
-        orders.append({
-            "number": int(line_elements[0]),
-            "customer" :line_elements[1],
-            "category": line_elements[2],
-            "quantity": int(line_elements[3]),
-            "price": float(line_elements[4]),
-            "status": line_elements[5],
-            "worth" :int(line_elements[3])* float(line_elements[4])
-        })
-        nums.append(line_elements[0])
 
 
 def mistake_list(mistakes):
+  """получает список ошибок, возвращает список ошибок для отчета"""
   report_lines = []
   for mistake in mistakes:
     report_lines.append(mistake + "\n")
@@ -79,6 +104,7 @@ def mistake_list(mistakes):
 
 
 def show_all_orders(orders):
+  """показывает все корректные заказы"""
   for order in orders:
       items = [f'{key}:{value}' for key,value in list(order.items())[:6]]
       print(", ".join(items))
@@ -87,6 +113,7 @@ def show_all_orders(orders):
 
 
 def sort_orders_worth(orders, for_report = 0):
+  """Сортирует заказы по стоимости и выводит первые 6 полей в консоль"""
   report_lines = []
 
   for order in sorted(orders, key = lambda order: order["worth"], reverse = True):
@@ -99,6 +126,7 @@ def sort_orders_worth(orders, for_report = 0):
 
 
 def sort_orders_category(orders):
+  """Сортирует заказы по категориям и стоимости и выводит первые 6 полей в консоль."""
   for order in sorted(orders, key = lambda order: (order["category"], -order["worth"])):
     items = [f'{key}:{value}' for key,value in list(order.items())[:6]]
     print(", ".join(items))
@@ -107,6 +135,7 @@ def sort_orders_category(orders):
 
 
 def find_status(orders):
+  """выводит все заказы определенного пользователем статуса"""
   print('Введите статус:')
   status = str(input())
 
@@ -119,6 +148,7 @@ def find_status(orders):
 
 
 def find_category(orders):
+  """выводит все заказы определенной пользователем категории"""
   print('Введите категорию:')
   category = str(input())
 
@@ -131,11 +161,12 @@ def find_category(orders):
 
 
 def find_customer(orders):
+  """выводит заказы клиента с именем, введенным пользователем"""
   print('Введите имя:')
   customer = str(input())
 
   for order in orders:
-    if order["customer"].lower() == customer.lower(): 
+    if customer.lower() in order["customer"].lower(): 
       items = [f'{key}:{value}' for key,value in list(order.items())[:6]]
       print(", ".join(items))
   print()
@@ -143,10 +174,11 @@ def find_customer(orders):
 
 
 def find_worth(orders, for_report = 0):
+  """выводит все заказы дороже 5000"""
   report_lines = []
 
   for order in orders:
-    if order["worth"] >= 5000: 
+    if order["worth"] >= EXPENSIVE: #EXPENSIVE = 5000
       items = [f'{key}:{value}' for key,value in list(order.items())[:6]]
       if not for_report: print(", ".join(items))
 
@@ -155,7 +187,8 @@ def find_worth(orders, for_report = 0):
   return "".join(report_lines)
 
 
-def category_stat(orders, for_report = 0):
+def category_stat(orders, for_report = 0): #for_report = 0 для вывода в консоль, 1 возвращает список категорий для отчета, 2 строки для отчета о категориях
+  """выводит статистику по категориям, возвращает строки статистики для отчета или список категорий"""
   report_lines = []
   report_category = []
 
@@ -177,10 +210,11 @@ def category_stat(orders, for_report = 0):
 
 
 def status_stat(orders, for_report = 0):
+  """выводит статистику о заказах разных статусов и возвращает ее как строки для отчета"""
   report_lines =[]
 
   if not for_report: print('Статистика по статусу.')
-  status_count = dict.fromkeys(statuses,0) #statuses = ['новый','в обработке','выполнен','отменён']
+  status_count = dict.fromkeys(STATUSES,0) #STATUSES = ['новый','в обработке','выполнен','отменён']
   for order in orders:
     status_count[order['status']] +=1
 
@@ -192,6 +226,7 @@ def status_stat(orders, for_report = 0):
 
 
 def overall_stat(orders,for_report = 0):
+  """выводит статистику обо всех заказах и возвращает ее в строках для отчета"""
   report_lines = []
 
   if not for_report: print(f'Кол-во заказов: {len(orders)}') 
@@ -219,14 +254,20 @@ def overall_stat(orders,for_report = 0):
 
 
 def statistic(orders):
+  """собирает и выводит всю статистику по категориям, статусам и всем заказам в целом"""
   category_stat(orders)
   status_stat(orders)
   overall_stat(orders)
+  return None
 
 
 def save_report(orders):
-  current_dir = os.path.dirname(os.path.abspath(__file__))
-  file_path = os.path.join(current_dir, 'orders_report.txt')
+  """создает отчет в той же директории, что и main.py"""
+  try:
+      current_dir = Path(__file__).resolve().parent
+  except NameError:
+      current_dir = Path.cwd()
+  file_path = os.path.join(current_dir, OUTPUT_FILE_NAME)
 
   with open(file_path,'w', encoding = 'utf-8') as file:
     file.write("ОТЧЕТ ПО ЗАКАЗАМ.\n\n")
@@ -249,35 +290,45 @@ def save_report(orders):
     file.write("9. Список ошибок входных данных.\n")
     file.write(f"{mistake_list(mistakes)}\n\n")
 
+  print(f"Создан файл {OUTPUT_FILE_NAME}.")
+
+
 
 if __name__ == "__main__":
-  while True:
-    print("1. Показать все заказы")
-    print("2. Показать заказы по убыванию стоимости")
-    print("3. Показать заказы по категориям")
-    print("4. Найти заказы по статусу")
-    print("5. Найти заказы по категории")
-    print("6. Найти заказы покупателя")
-    print("7. Показать крупные заказы")
-    print("8. Показать статистику")
-    print("9. Сохранить отчёт")
-    print("0. Завершить программу")
 
-    user_input = int(input("Выберите пункт меню: "))
-    print()
+    orders, mistakes = read_file()
+    
+    while True:
+        print("1. Показать все заказы")
+        print("2. Показать заказы по убыванию стоимости")
+        print("3. Показать заказы по категориям")
+        print("4. Найти заказы по статусу")
+        print("5. Найти заказы по категории")
+        print("6. Найти заказы покупателя")
+        print("7. Показать крупные заказы")
+        print("8. Показать статистику")
+        print("9. Сохранить отчёт")
+        print("0. Завершить программу")
 
-    if user_input == 0: 
-      print("Программа завершена.")
-      break
+        user_input = int(input("Выберите пункт меню: "))
+        print()
 
-    elif user_input == 1: show_all_orders(orders)
-    elif user_input == 2: sort_orders_worth(orders)
-    elif user_input == 3: sort_orders_category(orders)
-    elif user_input == 4: find_status(orders)
-    elif user_input == 5: find_category(orders)
-    elif user_input == 6: find_customer(orders)
-    elif user_input == 7: find_worth(orders)
-    elif user_input == 8: statistic(orders)
-    elif user_input == 9: save_report(orders)
+        if user_input == 0: 
+          print("Программа завершена.")
+          break
 
-    else:print("неверно введен пункт. Попробуйте снова.")
+        elif user_input == 1: show_all_orders(orders)
+        elif user_input == 2: sort_orders_worth(orders)
+        elif user_input == 3: sort_orders_category(orders)
+        elif user_input == 4: find_status(orders)
+        elif user_input == 5: find_category(orders)
+        elif user_input == 6: find_customer(orders)
+        elif user_input == 7: find_worth(orders)
+        elif user_input == 8: statistic(orders)
+        elif user_input == 9: save_report(orders)
+
+        else:print("неверно введен пункт. Попробуйте снова.")
+
+
+
+

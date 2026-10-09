@@ -8,6 +8,8 @@ orders = []
 mistakes = []
 nums = []
 statuses = ['новый','в обработке','выполнен','отменён']
+
+
 with open(order_file, encoding='utf-8') as f: 
 
     for i,line in enumerate(f.readlines()): 
@@ -173,6 +175,7 @@ def category_stat(orders, for_report = 0):
   if for_report == 1: return "".join(report_lines)
   if for_report == 2: return "".join(report_category)
 
+
 def status_stat(orders, for_report = 0):
   report_lines =[]
 
@@ -213,6 +216,7 @@ def overall_stat(orders,for_report = 0):
   report_lines.append(f'Покупатель с наибольшей суммой выполненных заказов: {(best := max(customer_count, key = customer_count.get))}, сумма: {customer_count[best]}' + '\n')
   if not for_report:print()
   return "".join(report_lines)
+
 
 def statistic(orders):
   category_stat(orders)

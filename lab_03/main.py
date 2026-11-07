@@ -35,20 +35,11 @@ def recursive_search(node, req_id):
         return node.value
     return recursive_search(node.next, req_id)
 
-def find_request(regular_q, urgent_q, history_list, req_id):
-    reg_res = recursive_search(regular_q.head, req_id)
-    if reg_res is not None:
-        return f'Заявка в обычной очереди: {reg_res}.'
-        
-    urg_res = recursive_search(urgent_q.head, req_id)
-    if urg_res is not None:
-        return f'Заявка в срочной очереди: {urg_res}.'
-        
-    hist_res = recursive_search(history_list.head, req_id)
-    if hist_res is not None:
-        return f'Заявка выполнена: {hist_res}.'
-        
-    return 'Заявки нет в системе.'
+def find_request(hash_table, req_id):
+    req = hash_table.get(req_id)
+    if req:
+        return f"Заявка найдена: {req}"
+    return "Заявка не найдена."
 
 def load_and_parse_requests():
     regular_q = Queue()
@@ -435,7 +426,7 @@ def main():
         elif n == 8:
             try:
                 req_id = int(input("Введите номер заявки для поиска: "))
-                print(find_request(regular_q, urgent_q, history_list, req_id))
+                print(find_request(hash_table, req_id))
             except ValueError:
                 print("Ошибка: Номер должен быть числом.")
                 
